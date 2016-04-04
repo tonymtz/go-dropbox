@@ -19,6 +19,7 @@ const (
 
 // Dropbox client
 type Dropbox struct {
+	Debug         bool
 	Locale        string // Locale sent to the API to translate/format messages.
 	Token         *Token
 	OAuth2Handler *OAuth2Handler
@@ -69,8 +70,10 @@ func (db *Dropbox) GetMediaURL(file string) (*SharedURL, *DropboxError) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", db.Token.Token))
 
-	dump, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(dump))
+	if db.Debug {
+		dump, _ := httputil.DumpRequest(req, true)
+		fmt.Println(string(dump))
+	}
 
 	res, err := client.Do(req)
 
@@ -91,7 +94,10 @@ func (db *Dropbox) GetMediaURL(file string) (*SharedURL, *DropboxError) {
 		}
 	default:
 		dumpData, _ := ioutil.ReadAll(res.Body)
-		fmt.Printf("%s\n", string(dumpData))
+
+		if db.Debug {
+			fmt.Printf("%s\n", string(dumpData))
+		}
 
 		var mediaURL SharedURL
 
@@ -124,8 +130,10 @@ func (db *Dropbox) ListFolder() (*Folder, *DropboxError) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", db.Token.Token))
 
-	dump, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(dump))
+	if db.Debug {
+		dump, _ := httputil.DumpRequest(req, true)
+		fmt.Println(string(dump))
+	}
 
 	res, err := client.Do(req)
 
@@ -146,7 +154,10 @@ func (db *Dropbox) ListFolder() (*Folder, *DropboxError) {
 		}
 	default:
 		dumpData, _ := ioutil.ReadAll(res.Body)
-		fmt.Printf("%s\n", string(dumpData))
+
+		if db.Debug {
+			fmt.Printf("%s\n", string(dumpData))
+		}
 
 		var metadata Folder
 
