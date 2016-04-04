@@ -14,7 +14,7 @@ const (
 	INVALID_ACCESS_TOKEN = "invalid_access_token"
 	API_URL = "https://api.dropbox.com/1"
 	LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
-	SHARES_URL = "https://api.dropboxapi.com/1/shares/auto/%v"
+	MEDIA_URL = "https://api.dropboxapi.com/1/media/auto/%v"
 )
 
 // Dropbox client
@@ -55,17 +55,17 @@ func (db *Dropbox) ExchangeToken(code string) (*Token, error) {
 	return db.OAuth2Handler.TokenExchange(code)
 }
 
-func (db *Dropbox) GetURL(file string) (*SharedURL, *DropboxError) {
+// Shares a file for streaming (direct access)
+func (db *Dropbox) GetMediaURL(file string) (*SharedURL, *DropboxError) {
 	client := &http.Client{}
 
-	data := sharesParameters{
-		ShortURL: false,
+	data := mediaParameters{
 		Locale: db.Locale,
 	}
 
 	encoded, _ := json.Marshal(data)
 
-	req, _ := http.NewRequest(POST, fmt.Sprintf(SHARES_URL, file), bytes.NewBuffer(encoded))
+	req, _ := http.NewRequest(POST, fmt.Sprintf(MEDIA_URL, file), bytes.NewBuffer(encoded))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", db.Token.Token))
 
@@ -93,9 +93,9 @@ func (db *Dropbox) GetURL(file string) (*SharedURL, *DropboxError) {
 		dumpData, _ := ioutil.ReadAll(res.Body)
 		fmt.Printf("%s\n", string(dumpData))
 
-		var sharedURL SharedURL
+		var mediaURL SharedURL
 
-		err := json.Unmarshal(dumpData, &sharedURL)
+		err := json.Unmarshal(dumpData, &mediaURL)
 
 		if err != nil {
 			return nil, &DropboxError{
@@ -104,7 +104,7 @@ func (db *Dropbox) GetURL(file string) (*SharedURL, *DropboxError) {
 			}
 		}
 
-		return &sharedURL, nil
+		return &mediaURL, nil
 	}
 }
 

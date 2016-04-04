@@ -9,9 +9,8 @@ type listFolderParameters struct {
 	IncludeDeleted   bool   `json:"include_deleted"`
 }
 
-type sharesParameters struct {
-	Locale   string `json:"locale"`
-	ShortURL bool   `json:"short_url"`
+type mediaParameters struct {
+	Locale string `json:"locale"`
 }
 
 // exported
