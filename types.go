@@ -15,6 +15,12 @@ type mediaParameters struct {
 
 // exported
 
+type Token struct {
+	UID   string        `json:"uid"`
+	Token string        `json:"access_token"`
+	Error *string       `json:"error"`
+}
+
 type Entry struct {
 	UID      string `json:"id,omitempty"`
 	Name     string `json:"name,omitempty"`

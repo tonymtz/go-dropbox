@@ -12,26 +12,34 @@ const (
 	TOKEN_EXCHANGE_URL = "https://api.dropbox.com/1/oauth2/token"
 )
 
-type Token struct {
-	UID   string        `json:"uid"`
-	Token string        `json:"access_token"`
-	Error *string       `json:"error"`
+type HttpInterface interface {
+	PostForm(string, url.Values) (*http.Response, error)
 }
 
 type OAuth2Handler struct {
 	Key,
 	Secret,
-	RedirectURL     string
-	Token           *Token
-	SuccessCallback func()
-	ErrorCallback   func()
+	RedirectURL string
+	authURL     string
 }
 
-func (h *OAuth2Handler) AuthCodeURL() string {
+func newOAuth2Handler() *OAuth2Handler {
+	return &OAuth2Handler{
+		authURL: TOKEN_EXCHANGE_URL,
+	}
+}
+
+func (h *OAuth2Handler) setAppKeys(appKey string, appSecret string, redirectURL string) {
+	h.Key = appKey
+	h.Secret = appSecret
+	h.RedirectURL = redirectURL
+}
+
+func (h *OAuth2Handler) authCodeURL() string {
 	return fmt.Sprintf(AUTHORIZATION_URL, h.Key, h.RedirectURL)
 }
 
-func (h *OAuth2Handler) TokenExchange(code string) (*Token, error) {
+func (h *OAuth2Handler) tokenExchange(code string) (*Token, error) {
 	data := url.Values{}
 
 	data.Add("code", code)
@@ -40,7 +48,7 @@ func (h *OAuth2Handler) TokenExchange(code string) (*Token, error) {
 	data.Add("client_secret", h.Secret)
 	data.Add("redirect_uri", h.RedirectURL)
 
-	resp, err := http.PostForm(TOKEN_EXCHANGE_URL, data)
+	resp, err := http.PostForm(h.authURL, data)
 
 	if err != nil {
 		return nil, err

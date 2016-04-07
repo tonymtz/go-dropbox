@@ -12,33 +12,33 @@ import (
 const (
 	POST = "POST"
 	INVALID_ACCESS_TOKEN = "invalid_access_token"
-	API_URL = "https://api.dropbox.com/1"
 	LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
-	MEDIA_URL = "https://api.dropboxapi.com/1/media/auto/%v"
+	MEDIA_URL = "https://api.dropboxapi.com/1/media/auto/"
 )
 
 // Dropbox client
 type Dropbox struct {
-	Debug         bool
-	Locale        string // Locale sent to the API to translate/format messages.
+	Debug         bool   // bool to dump request/response data
+	Locale        string // Locale sent to the API to translate/format messages
 	Token         *Token
-	OAuth2Handler *OAuth2Handler
+	mediaURL      string
+	listFolderURL string
+	oAuth2Handler *OAuth2Handler
 }
 
 // NewDropbox returns a new Dropbox instance
 func NewDropbox() *Dropbox {
-	return &Dropbox{Locale: "en"}
+	return &Dropbox{
+		Locale: "en",
+		mediaURL: MEDIA_URL,
+		listFolderURL: LIST_FOLDER_URL,
+		oAuth2Handler: newOAuth2Handler(),
+	}
 }
 
 // SetAppInfo sets app_key & app_secret from your Dropbox app
-func (db *Dropbox)SetAppInfo(appKey string, appSecret string, redirectURL string) {
-	oAuth2Handler := OAuth2Handler{
-		Key:           appKey,
-		Secret:        appSecret,
-		RedirectURL:   redirectURL,
-	}
-
-	db.OAuth2Handler = &oAuth2Handler
+func (db *Dropbox) SetAppInfo(appKey string, appSecret string, redirectURL string) {
+	db.oAuth2Handler.setAppKeys(appKey, appSecret, redirectURL)
 }
 
 // SetAccessToken sets access token
@@ -48,12 +48,16 @@ func (db *Dropbox) SetAccessToken(accessToken string) {
 	}
 }
 
+func (db *Dropbox) GetAccessToken() string {
+	return db.Token.Token
+}
+
 func (db *Dropbox) GetAuthURL() string {
-	return db.OAuth2Handler.AuthCodeURL()
+	return db.oAuth2Handler.authCodeURL()
 }
 
 func (db *Dropbox) ExchangeToken(code string) (*Token, error) {
-	return db.OAuth2Handler.TokenExchange(code)
+	return db.oAuth2Handler.tokenExchange(code)
 }
 
 // Shares a file for streaming (direct access)
@@ -66,16 +70,16 @@ func (db *Dropbox) GetMediaURL(file string) (*SharedURL, *DropboxError) {
 
 	encoded, _ := json.Marshal(data)
 
-	req, _ := http.NewRequest(POST, fmt.Sprintf(MEDIA_URL, file), bytes.NewBuffer(encoded))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", db.Token.Token))
+	request, _ := http.NewRequest(POST, db.mediaURL + file, bytes.NewBuffer(encoded))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", db.Token.Token))
 
 	if db.Debug {
-		dump, _ := httputil.DumpRequest(req, true)
+		dump, _ := httputil.DumpRequest(request, true)
 		fmt.Println(string(dump))
 	}
 
-	res, err := client.Do(req)
+	response, err := client.Do(request)
 
 	if err != nil {
 		return nil, &DropboxError{
@@ -84,16 +88,16 @@ func (db *Dropbox) GetMediaURL(file string) (*SharedURL, *DropboxError) {
 		}
 	}
 
-	defer res.Body.Close()
+	defer response.Body.Close()
 
-	switch res.StatusCode {
+	switch response.StatusCode {
 	case 401:
 		return nil, &DropboxError{
 			StatusCode:http.StatusUnauthorized,
 			ErrorSummary: INVALID_ACCESS_TOKEN,
 		}
 	default:
-		dumpData, _ := ioutil.ReadAll(res.Body)
+		dumpData, _ := ioutil.ReadAll(response.Body)
 
 		if db.Debug {
 			fmt.Printf("%s\n", string(dumpData))
@@ -105,7 +109,7 @@ func (db *Dropbox) GetMediaURL(file string) (*SharedURL, *DropboxError) {
 
 		if err != nil {
 			return nil, &DropboxError{
-				StatusCode:http.StatusServiceUnavailable,
+				StatusCode: http.StatusServiceUnavailable,
 				ErrorSummary: err.Error(),
 			}
 		}
@@ -126,7 +130,7 @@ func (db *Dropbox) ListFolder() (*Folder, *DropboxError) {
 
 	encoded, _ := json.Marshal(data)
 
-	req, _ := http.NewRequest(POST, LIST_FOLDER_URL, bytes.NewBuffer(encoded))
+	req, _ := http.NewRequest(POST, db.listFolderURL, bytes.NewBuffer(encoded))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", db.Token.Token))
 
