@@ -27,6 +27,7 @@ type Entry struct {
 	Path     string `json:"path_display,omitempty"`
 	Revision string `json:"rev,omitempty"`
 	Size     int    `json:"size,omitempty"`
+	Tag      string `json:".tag"`
 }
 
 type Folder struct {

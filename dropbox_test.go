@@ -61,7 +61,7 @@ func TestExchangeToken(t *testing.T) {
 	db := NewDropbox()
 	db.SetAppInfo("my_app_key", "my_app_secret", "my_url")
 	db.oAuth2Handler.authURL = testServer.URL
-	db.Debug = true
+	//db.Debug = true
 
 	token, err := db.ExchangeToken("this_code")
 
