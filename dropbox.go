@@ -12,8 +12,9 @@ import (
 const (
 	POST = "POST"
 	INVALID_ACCESS_TOKEN = "invalid_access_token"
-	LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
 	MEDIA_URL = "https://api.dropboxapi.com/1/media/auto/"
+	LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
+	SEARCH_URL = "https://api.dropboxapi.com/2/files/search/"
 )
 
 // Dropbox client
@@ -23,6 +24,7 @@ type Dropbox struct {
 	Token         *Token
 	mediaURL      string
 	listFolderURL string
+	searchURL     string
 	oAuth2Handler *OAuth2Handler
 }
 
@@ -32,6 +34,7 @@ func NewDropbox() *Dropbox {
 		Locale: "en",
 		mediaURL: MEDIA_URL,
 		listFolderURL: LIST_FOLDER_URL,
+		searchURL: SEARCH_URL,
 		oAuth2Handler: newOAuth2Handler(),
 	}
 }
@@ -123,7 +126,7 @@ func (db *Dropbox) ListFolder() (*Folder, *DropboxError) {
 
 	data := listFolderParameters{
 		Path: "",
-		Recursive: false,
+		Recursive: true,
 		IncludeMediaInfo: false,
 		IncludeDeleted: false,
 	}
@@ -164,6 +167,66 @@ func (db *Dropbox) ListFolder() (*Folder, *DropboxError) {
 		}
 
 		var metadata Folder
+
+		err := json.Unmarshal(dumpData, &metadata)
+
+		if err != nil {
+			return nil, &DropboxError{
+				StatusCode:http.StatusServiceUnavailable,
+				ErrorSummary: err.Error(),
+			}
+		}
+
+		return &metadata, nil
+	}
+}
+
+func (db *Dropbox) SearchMusic() (*Search, *DropboxError) {
+	client := &http.Client{}
+
+	data := searchParameters{
+		Path: "",
+		Query: ".mp3",
+		Mode: &searchMode{Tag: "filename" },
+		MaxResults: 1000,
+	}
+
+	encoded, _ := json.Marshal(data)
+
+	req, _ := http.NewRequest(POST, db.searchURL, bytes.NewBuffer(encoded))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", db.Token.Token))
+
+	if db.Debug {
+		dump, _ := httputil.DumpRequest(req, true)
+		fmt.Println(string(dump))
+	}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		return nil, &DropboxError{
+			StatusCode: http.StatusBadRequest,
+			ErrorSummary: err.Error(),
+		}
+	}
+
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 401:
+		return nil, &DropboxError{
+			StatusCode:http.StatusUnauthorized,
+			ErrorSummary: INVALID_ACCESS_TOKEN,
+		}
+	default:
+		dumpData, _ := ioutil.ReadAll(res.Body)
+
+		if db.Debug {
+			fmt.Printf("%s\n", string(dumpData))
+		}
+
+		var metadata Search
 
 		err := json.Unmarshal(dumpData, &metadata)
 

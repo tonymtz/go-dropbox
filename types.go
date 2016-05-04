@@ -1,6 +1,6 @@
 package go_dropbox
 
-// no exported
+// not exported
 
 type listFolderParameters struct {
 	Path             string `json:"path"`
@@ -11,6 +11,17 @@ type listFolderParameters struct {
 
 type mediaParameters struct {
 	Locale string `json:"locale"`
+}
+
+type searchMode struct {
+	Tag string `json:".tag"`
+}
+
+type searchParameters struct {
+	Path       string `json:"path"`
+	Query      string `json:"query"`
+	Mode       *searchMode   `json:"mode"`
+	MaxResults uint64   `json:"max_results"`
 }
 
 // exported
@@ -44,4 +55,28 @@ type SharedURL struct {
 type DropboxError struct {
 	ErrorSummary string `json:"error_summary"`
 	StatusCode   int
+}
+
+type MatchType struct {
+	Tag string `json:".tag"`
+}
+
+type Metadata struct {
+	UID      string `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Path     string `json:"path_display,omitempty"`
+	Revision string `json:"rev,omitempty"`
+	Size     int    `json:"size,omitempty"`
+	Tag      string `json:".tag"`
+}
+
+type Match struct {
+	MatchType *MatchType `json:"match_type"`
+	Metadata  *Metadata `json:"metadata"`
+}
+
+type Search struct {
+	Matches []*Match `json:"matches"`
+	Start   int      `json:"start"`
+	More    bool     `json:"more"`
 }
