@@ -14,7 +14,7 @@ const (
 	INVALID_ACCESS_TOKEN = "invalid_access_token"
 	MEDIA_URL = "https://api.dropboxapi.com/1/media/auto/"
 	LIST_FOLDER_URL = "https://api.dropboxapi.com/2/files/list_folder"
-	SEARCH_URL = "https://api.dropboxapi.com/2/files/search/"
+	SEARCH_URL = "https://api.dropboxapi.com/2/files/search"
 )
 
 // Dropbox client
